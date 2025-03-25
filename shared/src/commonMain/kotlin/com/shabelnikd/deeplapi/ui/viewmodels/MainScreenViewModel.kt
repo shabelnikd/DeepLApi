@@ -7,15 +7,23 @@ import com.shabelnikd.deeplapi.domain.models.SupportedTargetLanguages
 import com.shabelnikd.deeplapi.domain.models.TranslationRequest
 import com.shabelnikd.deeplapi.domain.models.TranslationResult
 import com.shabelnikd.deeplapi.domain.usecases.TranslateTextUseCase
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.qualifier.named
+
 
 class MainScreenViewModel(
     private val translateTextUseCase: TranslateTextUseCase
 ) : ViewModel(), KoinComponent {
+
+    private val ioDispatcher: CoroutineDispatcher by inject(named("IODispatcher"))
 
     private val _editTextState = MutableStateFlow<RequestResult>(RequestResult.NotLoaded)
     val editTextState = _editTextState.asStateFlow()
@@ -42,7 +50,7 @@ class MainScreenViewModel(
 
 
     fun translateText() {
-        viewModelScope.launch {
+        viewModelScope.launch(ioDispatcher) {
             currentRequestParams.value.text.takeIf { it.isNotEmpty() }?.apply {
                 val result = translateTextUseCase(currentRequestParams.value)
                 result.onSuccess { success ->

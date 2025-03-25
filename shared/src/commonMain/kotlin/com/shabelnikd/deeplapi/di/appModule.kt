@@ -8,4 +8,5 @@ val appModule = listOf(
     dataModule,
     ktorModule,
     domainModule,
+    dispatchersModule,
 )

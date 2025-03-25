@@ -2,12 +2,20 @@ package com.shabelnikd.deeplapi.ui.view
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -31,11 +39,14 @@ import kotlinx.coroutines.flow.onEach
 import org.koin.compose.viewmodel.koinViewModel
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen() {
     val viewModel = koinViewModel<MainScreenViewModel>()
     val requestResult by viewModel.editTextState.collectAsState()
     var inputText by remember { mutableStateOf("") }
+    val sheetState = rememberModalBottomSheetState()
+    var showBottomSheet by remember { mutableStateOf(false) }
     val textFlow = remember { MutableStateFlow("") }
     val currentParams by viewModel.currentRequestParams.collectAsState()
 //    val scope = rememberCoroutineScope()
@@ -47,6 +58,47 @@ fun MainScreen() {
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            val buttonColors = ButtonColors(
+                Color.White,
+                contentColor = Color.Black,
+                disabledContentColor = Color.Gray,
+                disabledContainerColor = Color.Black
+            )
+
+
+            TextButton(
+                onClick = {},
+                content = { Text("source") },
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(0.dp),
+                contentPadding = PaddingValues(0.dp),
+                colors = buttonColors
+            )
+
+            Button(
+                onClick = {},
+                content = { Text("<->") },
+                modifier = Modifier.weight(0.5f),
+                shape = RoundedCornerShape(0.dp),
+                contentPadding = PaddingValues(0.dp),
+                colors = buttonColors
+            )
+
+            Button(
+                onClick = {},
+                content = { Text("target") },
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(0.dp),
+                contentPadding = PaddingValues(0.dp),
+                colors = buttonColors
+            )
+        }
+
 
         InputTextField(
             inputText = inputText,
@@ -62,6 +114,7 @@ fun MainScreen() {
             })
 
         DebouncedTranslation(textFlow = textFlow, onTranslate = { viewModel.translateText() })
+
         DebouncedDetectLanguage(
             textFlow = textFlow,
             onDetect = {
@@ -71,6 +124,30 @@ fun MainScreen() {
                     null
                 )
             })
+
+
+        Button(
+            onClick = {
+                showBottomSheet = true
+            },
+            modifier = Modifier.fillMaxWidth(),
+            content = { Text("Open sheet") },
+        )
+
+
+
+        if (showBottomSheet) {
+            ModalBottomSheet(
+                onDismissRequest = {
+                    showBottomSheet = false
+                },
+                sheetState = sheetState,
+            ) {
+
+            }
+        }
+
+
 
         TranslationResultDisplay(requestResult = requestResult)
     }
@@ -95,7 +172,7 @@ fun InputTextField(
         textStyle = TextStyle(brush = brush),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = 16.dp, vertical = 0.dp)
     )
 }
 
