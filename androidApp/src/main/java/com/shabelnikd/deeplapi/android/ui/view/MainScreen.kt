@@ -1,4 +1,4 @@
-package com.shabelnikd.deeplapi.ui.view
+package com.shabelnikd.deeplapi.android.ui.view
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,7 +18,6 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -29,8 +28,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shabelnikd.deeplapi.domain.models.SupportedSourceLanguages
-import com.shabelnikd.deeplapi.ui.viewmodels.MainScreenViewModel
+import com.shabelnikd.deeplapi.viewmodels.MainScreenViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.debounce
@@ -43,13 +43,12 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun MainScreen() {
     val viewModel = koinViewModel<MainScreenViewModel>()
-    val requestResult by viewModel.editTextState.collectAsState()
+    val currentParams by viewModel.currentRequestParams.collectAsStateWithLifecycle()
+    val requestResult by viewModel.editTextState.collectAsStateWithLifecycle()
     var inputText by remember { mutableStateOf("") }
     val sheetState = rememberModalBottomSheetState()
     var showBottomSheet by remember { mutableStateOf(false) }
     val textFlow = remember { MutableStateFlow("") }
-    val currentParams by viewModel.currentRequestParams.collectAsState()
-//    val scope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier
@@ -60,7 +59,9 @@ fun MainScreen() {
     ) {
 
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             val buttonColors = ButtonColors(
@@ -233,6 +234,10 @@ fun TranslationResultDisplay(requestResult: MainScreenViewModel.RequestResult) {
         }
 
         MainScreenViewModel.RequestResult.NotLoaded -> {
+        }
+
+        MainScreenViewModel.RequestResult.Loading -> {
+
         }
 
         is MainScreenViewModel.RequestResult.Error -> {

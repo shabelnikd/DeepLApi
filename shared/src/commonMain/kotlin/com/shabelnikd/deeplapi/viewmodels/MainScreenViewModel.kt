@@ -1,4 +1,4 @@
-package com.shabelnikd.deeplapi.ui.viewmodels
+package com.shabelnikd.deeplapi.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -8,8 +8,6 @@ import com.shabelnikd.deeplapi.domain.models.TranslationRequest
 import com.shabelnikd.deeplapi.domain.models.TranslationResult
 import com.shabelnikd.deeplapi.domain.usecases.TranslateTextUseCase
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.getAndUpdate
@@ -52,21 +50,25 @@ class MainScreenViewModel(
     fun translateText() {
         viewModelScope.launch(ioDispatcher) {
             currentRequestParams.value.text.takeIf { it.isNotEmpty() }?.apply {
-                val result = translateTextUseCase(currentRequestParams.value)
-                result.onSuccess { success ->
+                _editTextState.value = RequestResult.Loading
 
-                    updateCurrentRequestParams(
-                        sourceLanguage = success.detectedSourceLanguage?.let {
-                            findSourceLanguageFromString(it)
-                        } ?: SupportedSourceLanguages.AUTO,
-                        text = null,
-                        targetLanguage = null
-                    )
-                    _editTextState.value = RequestResult.Success(success)
-                }.onFailure { err ->
-                    _editTextState.value =
-                        RequestResult.Error(err.message ?: "Ошибка соединения...")
+                val result = translateTextUseCase(currentRequestParams.value)
+                result.collect { data ->
+                    data.onSuccess { success ->
+                        updateCurrentRequestParams(
+                            sourceLanguage = success.detectedSourceLanguage?.let {
+                                findSourceLanguageFromString(it)
+                            } ?: SupportedSourceLanguages.AUTO,
+                            text = null,
+                            targetLanguage = null
+                        )
+                        _editTextState.value = RequestResult.Success(success)
+                    }.onFailure { err ->
+                        _editTextState.value =
+                            RequestResult.Error(err.message ?: "Ошибка соединения...")
+                    }
                 }
+
             } ?: run {
                 updateCurrentRequestParams(
                     null, SupportedSourceLanguages.AUTO, null
@@ -75,12 +77,13 @@ class MainScreenViewModel(
         }
     }
 
-    fun findSourceLanguageFromString(lang: String): SupportedSourceLanguages? {
+    private fun findSourceLanguageFromString(lang: String): SupportedSourceLanguages? {
         return SupportedSourceLanguages.entries.find { it.requestFieldName == lang }
     }
 
     sealed class RequestResult {
         data object NotLoaded : RequestResult()
+        data object Loading : RequestResult()
         data class Success(val result: TranslationResult) : RequestResult()
         data class Error(val eMessage: String) : RequestResult()
     }

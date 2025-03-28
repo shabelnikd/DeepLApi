@@ -1,6 +1,6 @@
-package com.shabelnikd.deeplapi.ui.core
+package com.shabelnikd.deeplapi.android.ui.core
 
-import com.shabelnikd.deeplapi.ui.viewmodels.MainScreenViewModel
+import com.shabelnikd.deeplapi.viewmodels.MainScreenViewModel
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 

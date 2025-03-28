@@ -5,12 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
-import com.shabelnikd.deeplapi.data.core.dataModule
-import com.shabelnikd.deeplapi.data.core.ktorModule
-import com.shabelnikd.deeplapi.domain.core.domainModule
-import com.shabelnikd.deeplapi.ui.core.uiModule
-import com.shabelnikd.deeplapi.ui.view.MainScreen
-import org.koin.core.context.startKoin
+import com.shabelnikd.deeplapi.android.ui.view.MainScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -24,10 +19,5 @@ class MainActivity : ComponentActivity() {
 @Preview
 @Composable
 fun preview() {
-    startKoin {
-        modules(
-            dataModule, domainModule, ktorModule, uiModule
-        )
-    }
     MainScreen()
 }

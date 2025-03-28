@@ -1,11 +1,8 @@
 package com.shabelnikd.deeplapi.android
 
 import android.app.Application
-import com.shabelnikd.deeplapi.ui.core.uiModule
-import com.shabelnikd.deeplapi.data.core.dataModule
-import com.shabelnikd.deeplapi.data.core.ktorModule
+import com.shabelnikd.deeplapi.android.ui.core.uiModule
 import com.shabelnikd.deeplapi.di.appModule
-import com.shabelnikd.deeplapi.domain.core.domainModule
 import org.koin.core.context.startKoin
 
 class App : Application() {
@@ -13,7 +10,8 @@ class App : Application() {
         super.onCreate()
         startKoin {
             modules(
-                dataModule, domainModule, ktorModule, uiModule
+//                uiModule, domainModule, dataModule, ktorModule, dispatchersModule
+                *appModule.toTypedArray(), uiModule
             )
         }
     }
