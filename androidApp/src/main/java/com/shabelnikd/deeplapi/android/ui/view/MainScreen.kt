@@ -7,35 +7,40 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.paging.compose.collectAsLazyPagingItems
+import com.shabelnikd.deeplapi.android.ui.base.BaseScreen
+import com.shabelnikd.deeplapi.android.ui.base.LocalViewModel
+import com.shabelnikd.deeplapi.android.ui.components.composable.InputTextField
+import com.shabelnikd.deeplapi.android.ui.components.composable.TranslationResultDisplay
+import com.shabelnikd.deeplapi.android.ui.components.effects.DebouncedDetectLanguage
+import com.shabelnikd.deeplapi.android.ui.components.effects.DebouncedTranslation
+import com.shabelnikd.deeplapi.android.viewmodels.CartoonViewModel
 import com.shabelnikd.deeplapi.domain.models.SupportedSourceLanguages
+import com.shabelnikd.deeplapi.domain.models.SupportedTargetLanguages
 import com.shabelnikd.deeplapi.viewmodels.MainScreenViewModel
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import org.koin.compose.viewmodel.koinViewModel
 
 
@@ -43,219 +48,229 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun MainScreen() {
     val viewModel = koinViewModel<MainScreenViewModel>()
-    val currentParams by viewModel.currentRequestParams.collectAsStateWithLifecycle()
-    val requestResult by viewModel.editTextState.collectAsStateWithLifecycle()
-    var inputText by remember { mutableStateOf("") }
-    val sheetState = rememberModalBottomSheetState()
-    var showBottomSheet by remember { mutableStateOf(false) }
-    val textFlow = remember { MutableStateFlow("") }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(top = 100.dp),
-        verticalArrangement = Arrangement.Top,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            val buttonColors = ButtonColors(
-                Color.White,
-                contentColor = Color.Black,
-                disabledContentColor = Color.Gray,
-                disabledContainerColor = Color.Black
-            )
+    val snackBarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
 
-            TextButton(
-                onClick = {},
-                content = { Text("source") },
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(0.dp),
-                contentPadding = PaddingValues(0.dp),
-                colors = buttonColors
-            )
+    BaseScreen(viewModel = viewModel, snackBarHostState = snackBarHostState) {
+        val vm = LocalViewModel.current as? MainScreenViewModel ?: error("ViewModel not provided")
 
-            Button(
-                onClick = {},
-                content = { Text("<->") },
-                modifier = Modifier.weight(0.5f),
-                shape = RoundedCornerShape(0.dp),
-                contentPadding = PaddingValues(0.dp),
-                colors = buttonColors
-            )
+        val currentParams by vm.currentRequestParams.collectAsStateWithLifecycle()
+        val requestResult by vm.editTextState.collectAsStateWithLifecycle()
+        var currentTranslatedText by remember { mutableStateOf("") }
+        var inputText by remember { mutableStateOf("") }
+        val textFlow = remember { MutableStateFlow("") }
 
-            Button(
-                onClick = {},
-                content = { Text("target") },
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(0.dp),
-                contentPadding = PaddingValues(0.dp),
-                colors = buttonColors
-            )
-        }
-
-
-        InputTextField(
-            inputText = inputText,
-            label = { Text(text = currentParams.sourceLang.uiName) },
-            onValueChange = {
-                inputText = it
-                textFlow.value = it
-                viewModel.updateCurrentRequestParams(
-                    text = it,
-                    sourceLanguage = null,
-                    targetLanguage = null
-                )
-            })
-
-        DebouncedTranslation(textFlow = textFlow, onTranslate = { viewModel.translateText() })
-
-        DebouncedDetectLanguage(
-            textFlow = textFlow,
-            onDetect = {
-                viewModel.updateCurrentRequestParams(
-                    null,
-                    SupportedSourceLanguages.AUTO,
-                    null
-                )
-            })
-
-
-        Button(
-            onClick = {
-                showBottomSheet = true
-            },
-            modifier = Modifier.fillMaxWidth(),
-            content = { Text("Open sheet") },
+        val buttonColors = ButtonColors(
+            Color.White,
+            contentColor = Color.Black,
+            disabledContentColor = Color.Gray,
+            disabledContainerColor = Color.Black
         )
 
+        // Bottom Sheet
+
+        var showSourceSheet by remember { mutableStateOf(false) }
+        var showTargetSheet by remember { mutableStateOf(false) }
 
 
-        if (showBottomSheet) {
-            ModalBottomSheet(
-                onDismissRequest = {
-                    showBottomSheet = false
-                },
-                sheetState = sheetState,
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 100.dp),
+            verticalArrangement = Arrangement.Top,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+
+            DebouncedTranslation(textFlow = textFlow, onTranslate = { vm.translateText() })
+
+            DebouncedDetectLanguage(
+                textFlow = textFlow,
+                onDetect = {
+                    if (!vm.isLangHandSelected) {
+                        viewModel.updateCurrentRequestParams(
+                            sourceLanguage = SupportedSourceLanguages.AUTO,
+                        )
+                    }
+                })
+
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
 
+                TextButton(
+                    onClick = {
+                        showSourceSheet = true
+                    },
+                    content = { Text(currentParams.sourceLang.uiName) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(0.dp),
+                    contentPadding = PaddingValues(0.dp),
+                    colors = buttonColors
+                )
+
+                TextButton(
+                    onClick = {
+                        vm.updateCurrentRequestParams(
+                            sourceLanguage = SupportedSourceLanguages.entries.find { it.requestFieldName == currentParams.targetLang.requestFieldName },
+                            targetLanguage = SupportedTargetLanguages.entries.find { it.requestFieldName == currentParams.sourceLang.requestFieldName },
+                        )
+                        inputText = currentTranslatedText
+                        vm.isLangHandSelected = true
+                        vm.translateText()
+                    },
+                    content = { Text("<->") },
+                    modifier = Modifier.weight(0.5f),
+                    shape = RoundedCornerShape(0.dp),
+                    contentPadding = PaddingValues(0.dp),
+                    colors = buttonColors
+                )
+
+                TextButton(
+                    onClick = {
+                        showTargetSheet = true
+                    },
+                    content = { Text(currentParams.targetLang.uiName) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(0.dp),
+                    contentPadding = PaddingValues(0.dp),
+                    colors = buttonColors
+                )
             }
-        }
 
 
+            InputTextField(
+                inputText = inputText,
+                label = { Text(text = currentParams.sourceLang.uiName) },
+                onValueChange = {
+                    inputText = it
+                    textFlow.value = it
+                    vm.updateCurrentRequestParams(
+                        text = it,
+                        sourceLanguage = null,
+                        targetLanguage = null
+                    )
+                })
 
-        TranslationResultDisplay(requestResult = requestResult)
-    }
+            TranslationResultDisplay(
+                requestResult = requestResult,
+                requestParams = currentParams,
+                currentTranslatedText = { currentTranslatedText = it.orEmpty() })
 
-//    ErrorHandling(requestResult = requestResult, context = context, scope = scope, snackbarHostState = snackbarHostState)
-}
 
-@Composable
-fun InputTextField(
-    inputText: String,
-    label: @Composable () -> Unit,
-    onValueChange: (String) -> Unit
-) {
-    val brush = remember { Brush.linearGradient(colors = listOf(Color.Red, Color.Blue)) }
-    TextField(
-        value = inputText,
-        onValueChange = { newValue ->
-            onValueChange(newValue)
-        },
-        label = label,
-        minLines = 10,
-        textStyle = TextStyle(brush = brush),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 0.dp)
-    )
-}
+            val cartoonViewModel: CartoonViewModel = koinViewModel<CartoonViewModel>()
+            cartoonViewModel.getCharacters()
+            val characters = cartoonViewModel.charactersState.collectAsLazyPagingItems()
 
-@OptIn(FlowPreview::class)
-@Composable
-fun DebouncedTranslation(textFlow: MutableStateFlow<String>, onTranslate: () -> Unit) {
-    LaunchedEffect(textFlow) {
-        textFlow
-            .debounce(2000L)
-            .onEach {
-                onTranslate()
+            LazyColumn {
+                items(characters.itemCount) { index ->
+                    val character = characters[index]
+                    if (character != null) {
+                        Text(text = character.name.orEmpty())
+                        Text(text = character.id.toString())
+                    }
+                }
             }
-            .launchIn(this)
-    }
-}
 
-@OptIn(FlowPreview::class)
-@Composable
-fun DebouncedDetectLanguage(textFlow: MutableStateFlow<String>, onDetect: () -> Unit) {
-    LaunchedEffect(textFlow) {
-        textFlow.debounce(200L).onEach {
-            onDetect()
-        }
-            .launchIn(this)
 
-    }
-}
+            if (showSourceSheet) {
+                ShowLangSelect(
+                    items = SupportedSourceLanguages.entries.toList(),
+                    onClick = { lang ->
+                        vm.updateCurrentRequestParams(
+                            sourceLanguage = lang,
+                        )
+                        vm.isLangHandSelected = true
+                        vm.translateText()
+                    },
+                    content = { lang ->
+                        Text(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 10.dp),
+                            text = lang.uiName,
+                            textAlign = TextAlign.Start,
+                        )
+                    },
+                    onDismiss = { showSourceSheet = false }
+                )
+            }
 
-@Composable
-fun readOnlyTextField(label: @Composable () -> Unit, value: String) {
-    val brush = remember { Brush.linearGradient(colors = listOf(Color.Red, Color.Blue)) }
-    TextField(
-        value = value,
-        onValueChange = {},
-        label = label,
-        minLines = 10,
-        textStyle = TextStyle(brush = brush),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        readOnly = true
-    )
-}
 
-@Composable
-fun TranslationResultDisplay(requestResult: MainScreenViewModel.RequestResult) {
-
-    when (requestResult) {
-        is MainScreenViewModel.RequestResult.Success -> {
-            val result = requestResult.result
-            result.text?.let {
-                readOnlyTextField(
-                    label = { result.detectedSourceLanguage?.let { lang -> Text(text = lang) } },
-                    value = it
+            if (showTargetSheet) {
+                ShowLangSelect(
+                    items = SupportedTargetLanguages.entries.toList(),
+                    onClick = { lang ->
+                        vm.updateCurrentRequestParams(
+                            targetLanguage = lang,
+                        )
+                        vm.translateText()
+                    },
+                    content = { lang ->
+                        Text(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 10.dp),
+                            text = lang.uiName,
+                            textAlign = TextAlign.Start,
+                        )
+                    },
+                    onDismiss = { showTargetSheet = false }
                 )
             }
 
         }
 
-        MainScreenViewModel.RequestResult.NotLoaded -> {
-        }
+    }
+}
 
-        MainScreenViewModel.RequestResult.Loading -> {
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun <T> ShowLangSelect(
+    items: List<T>,
+    onClick: (lang: T) -> Unit,
+    content: @Composable (uiLang: T) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState()
 
-        }
+    val buttonColors = ButtonColors(
+        Color.White,
+        contentColor = Color.Black,
+        disabledContentColor = Color.Gray,
+        disabledContainerColor = Color.Black
+    )
 
-        is MainScreenViewModel.RequestResult.Error -> {
+    ModalBottomSheet(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
 
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+    ) {
+        LazyColumn {
+            items(items) { item ->
+                TextButton(
+                    onClick = {
+                        onClick.invoke(item)
+                    },
+                    content = {
+                        content.invoke(item)
+                    },
+                    modifier = Modifier
+                        .fillMaxSize(),
+                    shape = RoundedCornerShape(0.dp),
+                    contentPadding = PaddingValues(0.dp),
+                    colors = buttonColors
+                )
+            }
         }
     }
 }
 
-
-//@Composable
-//fun ErrorHandling(requestResult: MainScreenViewModel.RequestResult, scope: CoroutineScope, snackbarHostState: SnackbarHostState) {
-//
-//
-//    if (requestResult is MainScreenViewModel.RequestResult.Error) {
-//        LaunchedEffect(Unit) {
-//            scope.launch {
-//                sn
-//            }
-//        }
-//    }
-//}

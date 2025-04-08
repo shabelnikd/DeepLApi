@@ -1,92 +1,73 @@
 package com.shabelnikd.deeplapi.viewmodels
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import com.shabelnikd.deeplapi.base.BaseViewModel
 import com.shabelnikd.deeplapi.domain.models.SupportedSourceLanguages
 import com.shabelnikd.deeplapi.domain.models.SupportedTargetLanguages
 import com.shabelnikd.deeplapi.domain.models.TranslationRequest
 import com.shabelnikd.deeplapi.domain.models.TranslationResult
 import com.shabelnikd.deeplapi.domain.usecases.TranslateTextUseCase
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.getAndUpdate
-import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
-import org.koin.core.qualifier.named
 
 
 class MainScreenViewModel(
     private val translateTextUseCase: TranslateTextUseCase
-) : ViewModel(), KoinComponent {
+) : BaseViewModel(), KoinComponent {
 
-    private val ioDispatcher: CoroutineDispatcher by inject(named("IODispatcher"))
-
-    private val _editTextState = MutableStateFlow<RequestResult>(RequestResult.NotLoaded)
+    private val _editTextState = MutableStateFlow<UiState<TranslationResult>>(UiState.NotLoaded)
     val editTextState = _editTextState.asStateFlow()
+
+    var isLangHandSelected = false
+
 
     val currentRequestParams = MutableStateFlow(
         TranslationRequest(
             text = "",
             sourceLang = SupportedSourceLanguages.AUTO,
-            targetLang = SupportedTargetLanguages.AUTO,
+            targetLang = SupportedTargetLanguages.RU,
         )
     )
 
     fun updateCurrentRequestParams(
-        text: String?,
-        sourceLanguage: SupportedSourceLanguages?,
-        targetLanguage: SupportedTargetLanguages?,
+        text: String? = null,
+        sourceLanguage: SupportedSourceLanguages? = null,
+        targetLanguage: SupportedTargetLanguages? = null,
     ) = currentRequestParams.getAndUpdate { params ->
         params.copy(
             text = text ?: params.text,
             sourceLang = sourceLanguage ?: params.sourceLang,
-            targetLang = targetLanguage ?: params.targetLang
+            targetLang = targetLanguage ?: params.targetLang,
         )
     }
 
 
     fun translateText() {
-        viewModelScope.launch(ioDispatcher) {
-            currentRequestParams.value.text.takeIf { it.isNotEmpty() }?.apply {
-                _editTextState.value = RequestResult.Loading
-
-                val result = translateTextUseCase(currentRequestParams.value)
-                result.collect { data ->
-                    data.onSuccess { success ->
-                        updateCurrentRequestParams(
-                            sourceLanguage = success.detectedSourceLanguage?.let {
+        currentRequestParams.value.text.takeIf { it.isNotEmpty() }?.let {
+            collectFlow(
+                stateFlow = _editTextState,
+                request = { translateTextUseCase(currentRequestParams.value) },
+                onSuccess = { success ->
+                    updateCurrentRequestParams(
+                        sourceLanguage =
+                            if (isLangHandSelected) null
+                            else success.detectedSourceLanguage?.let {
                                 findSourceLanguageFromString(it)
                             } ?: SupportedSourceLanguages.AUTO,
-                            text = null,
-                            targetLanguage = null
-                        )
-                        _editTextState.value = RequestResult.Success(success)
-                    }.onFailure { err ->
-                        _editTextState.value =
-                            RequestResult.Error(err.message ?: "Ошибка соединения...")
-                    }
+                    )
+                },
+                onError = { err ->
+                    println("Translation error: ${err.message}")
                 }
-
-            } ?: run {
-                updateCurrentRequestParams(
-                    null, SupportedSourceLanguages.AUTO, null
-                )
-            }
+            )
+        } ?: run {
+            _editTextState.value = UiState.NotLoaded
         }
     }
 
     private fun findSourceLanguageFromString(lang: String): SupportedSourceLanguages? {
         return SupportedSourceLanguages.entries.find { it.requestFieldName == lang }
     }
-
-    sealed class RequestResult {
-        data object NotLoaded : RequestResult()
-        data object Loading : RequestResult()
-        data class Success(val result: TranslationResult) : RequestResult()
-        data class Error(val eMessage: String) : RequestResult()
-    }
-
 
 }

@@ -8,8 +8,6 @@ enum class SupportedTargetLanguages(val uiName: String, val requestFieldName: St
     DE(uiName = "German", requestFieldName = "DE"),
     EL(uiName = "Greek", requestFieldName = "EL"),
     EN(uiName = "English", requestFieldName = "EN"), // Unspecified, for compatibility
-    EN_GB(uiName = "English (British)", requestFieldName = "EN-GB"),
-    EN_US(uiName = "English (American)", requestFieldName = "EN-US"),
     ES(uiName = "Spanish", requestFieldName = "ES"),
     ET(uiName = "Estonian", requestFieldName = "ET"),
     FI(uiName = "Finnish", requestFieldName = "FI"),
@@ -25,8 +23,6 @@ enum class SupportedTargetLanguages(val uiName: String, val requestFieldName: St
     NL(uiName = "Dutch", requestFieldName = "NL"),
     PL(uiName = "Polish", requestFieldName = "PL"),
     PT(uiName = "Portuguese", requestFieldName = "PT"), // Unspecified, for compatibility
-    PT_BR(uiName = "Portuguese (Brazilian)", requestFieldName = "PT-BR"),
-    PT_PT(uiName = "Portuguese (all excluding Brazilian)", requestFieldName = "PT-PT"),
     RO(uiName = "Romanian", requestFieldName = "RO"),
     RU(uiName = "Russian", requestFieldName = "RU"),
     SK(uiName = "Slovak", requestFieldName = "SK"),
@@ -35,8 +31,4 @@ enum class SupportedTargetLanguages(val uiName: String, val requestFieldName: St
     TR(uiName = "Turkish", requestFieldName = "TR"),
     UK(uiName = "Ukrainian", requestFieldName = "UK"),
     ZH(uiName = "Chinese", requestFieldName = "ZH"), // Unspecified, for compatibility
-    ZH_HANS(uiName = "Chinese (simplified)", requestFieldName = "ZH-HANS"),
-    ZH_HANT(uiName = "Chinese (traditional)", requestFieldName = "ZH-HANT"),
-
-    AUTO(EN_US.uiName, EN_US.requestFieldName),
 }

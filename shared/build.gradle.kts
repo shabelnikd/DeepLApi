@@ -34,7 +34,7 @@ kotlin {
             isStatic = true
         }
     }
-    
+
     sourceSets {
         commonMain.dependencies {
             implementation(libs.koin.core)
@@ -51,6 +51,7 @@ kotlin {
             implementation(libs.ktor.client.logging)
             implementation(libs.kotlinx.serialization.json)
 
+
             //put your multiplatform dependencies here
         }
         commonTest.dependencies {
@@ -60,6 +61,7 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.compose.ui.tooling)
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.androidx.paging.runtime)
 
         }
 

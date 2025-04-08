@@ -20,6 +20,7 @@ suspend inline fun <reified S> HttpClient.makeNetworkRequest(
     return try {
         val httpResponse = request {
             request()
+            print("request")
         }
 
         when {
