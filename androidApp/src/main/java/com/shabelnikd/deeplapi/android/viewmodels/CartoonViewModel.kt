@@ -1,5 +1,6 @@
 package com.shabelnikd.deeplapi.android.viewmodels
 
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import com.shabelnikd.deeplapi.android.data.repository.CartoonRepository
@@ -14,7 +15,7 @@ import org.koin.core.component.KoinComponent
 
 class CartoonViewModel(
     private val cartoonRepository: CartoonRepository
-) : BaseViewModel(), KoinComponent {
+) : ViewModel(), KoinComponent {
 
 
     private val _charactersState =

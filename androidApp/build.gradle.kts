@@ -55,5 +55,7 @@ dependencies {
     implementation(libs.androidx.paging.runtime)
     implementation(libs.androidx.paging.compose)
 
+    implementation("dev.chrisbanes.haze:haze:1.5.4")
+
 
 }
